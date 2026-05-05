@@ -2,47 +2,51 @@ provider "azurerm" {
   features {}
 }
 
-# Existing Resource Group (VM will be created here)
-resource "azurerm_resource_group" "rg" {
-  name     = "myrg"
-  location = "South India"
+# -----------------------------
+# USE EXISTING RESOURCE GROUP
+# -----------------------------
+data "azurerm_resource_group" "rg" {
+  name = "myrg"
 }
 
-# EXISTING VNET
-data "azurerm_virtual_network" "vnet" {
-  name                = "cafevnet"
-  resource_group_name = "my-network-rg"
+# -----------------------------
+# PUBLIC IP
+# -----------------------------
+resource "azurerm_public_ip" "pip" {
+  name                = "vm-pip"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  allocation_method   = "Dynamic"
 }
 
-# EXISTING SUBNET
-data "azurerm_subnet" "subnet" {
-  name                 = "public-subnet"
-  virtual_network_name = data.azurerm_virtual_network.vnet.name
-  resource_group_name  = "my-network-rg"
-}
-
-# NIC
+# -----------------------------
+# NETWORK INTERFACE
+# -----------------------------
 resource "azurerm_network_interface" "nic" {
-  name                = "dev-vm-nic"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  name                = "vm-nic"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 
   ip_configuration {
     name                          = "internal"
-    subnet_id                     = data.azurerm_subnet.subnet.id
+    subnet_id                     = "/subscriptions/7eaa1b0f-3d5a-444d-82c2-c0c3cb0f4da1/resourceGroups/my-network-rg/providers/Microsoft.Network/virtualNetworks/cafevnet/subnets/public-subnet"
     private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.pip.id
   }
 }
 
-# VM
+# -----------------------------
+# LINUX VIRTUAL MACHINE
+# -----------------------------
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "dev-ubuntu-vm"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
+  name                = "dev-vm"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
   size                = "Standard_B1s"
 
-  admin_username                  = "azureuser"
-  admin_password                  = "Msois@123"
+  admin_username = "azureuser"
+  admin_password = "Msois@123"
+
   disable_password_authentication = false
 
   network_interface_ids = [
