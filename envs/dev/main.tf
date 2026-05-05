@@ -43,7 +43,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   name                = "dev-vm"
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
-  size                = "Standard_DS1_v2"
+  size                = "Standard_D2ls_v6"
 
   admin_username = "azureuser"
   admin_password = "Msois@123"
