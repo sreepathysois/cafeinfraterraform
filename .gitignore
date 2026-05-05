@@ -1,0 +1,18 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+
+# Sensitive files
+*.pem
+*.key
+
+# CLI / OS junk
+.DS_Store
+Thumbs.db
+
+# Azure DevOps artifacts
+*.tfplan
