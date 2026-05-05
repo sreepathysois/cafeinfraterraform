@@ -17,6 +17,8 @@ stages:
       vmImage: ubuntu-latest
 
     steps:
+    - checkout: self
+
     - task: TerraformInstaller@1
       inputs:
         terraformVersion: 'latest'
@@ -27,13 +29,21 @@ stages:
         scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
+          echo "Navigating to Terraform directory..."
           cd $(TF_DIR)
+
+          echo "Initializing Terraform..."
           terraform init
+
+          echo "Validating Terraform..."
           terraform validate
+
+          echo "Running Terraform Plan..."
           terraform plan -out=tfplan
 
     - publish: $(TF_DIR)/tfplan
       artifact: tfplan
+
 
 # -----------------------
 # STAGE 2: APPLY
@@ -45,13 +55,14 @@ stages:
 
   jobs:
   - deployment: ApplyJob
-    environment: dev   # enables approval
+    environment: dev   # enable approvals here in UI
     strategy:
       runOnce:
         deploy:
           steps:
 
           - checkout: self
+
           - download: current
             artifact: tfplan
 
@@ -65,6 +76,14 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
+                echo "Navigating to Terraform directory..."
                 cd $(TF_DIR)
+
+                echo "Copying tfplan from artifact location..."
+                cp $(Pipeline.Workspace)/tfplan/tfplan .
+
+                echo "Initializing Terraform..."
                 terraform init
+
+                echo "Applying Terraform plan..."
                 terraform apply -auto-approve tfplan
