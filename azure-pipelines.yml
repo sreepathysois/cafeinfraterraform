@@ -1,19 +1,69 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
 - main
 
-pool:
-  vmImage: ubuntu-latest
+variables:
+  TF_DIR: envs/dev
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+stages:
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+# -----------------------
+# STAGE 1: PLAN
+# -----------------------
+- stage: Plan
+  displayName: Terraform Plan
+  jobs:
+  - job: PlanJob
+    pool:
+      vmImage: ubuntu-latest
+
+    steps:
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: 'latest'
+
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'my-azure-infra-service'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          cd $(TF_DIR)
+          terraform init
+          terraform validate
+          terraform plan -out=tfplan
+
+    - publish: $(TF_DIR)/tfplan
+      artifact: tfplan
+
+# -----------------------
+# STAGE 2: APPLY
+# -----------------------
+- stage: Apply
+  displayName: Terraform Apply
+  dependsOn: Plan
+  condition: succeeded()
+
+  jobs:
+  - deployment: ApplyJob
+    environment: dev   # enables approval
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          - download: current
+            artifact: tfplan
+
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: 'latest'
+
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'my-azure-infra-service'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                cd $(TF_DIR)
+                terraform init
+                terraform apply -auto-approve tfplan
