@@ -2,7 +2,7 @@ trigger:
 - main
 
 variables:
-  TF_DIR: terraform/envs/dev
+  TF_DIR: envs/dev
 
 stages:
 
